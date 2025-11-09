@@ -3,6 +3,7 @@ function LatexEditor() {
   const textareaRef = React.useRef(null);
   const [openCategories, setOpenCategories] = React.useState({
     "Basic": true,
+    "Text Formatting": true,
     "Calculus": true,
     "Algebra": true,
     "Greek Letters": true,
@@ -57,6 +58,19 @@ function LatexEditor() {
         { label: "ⁿ√ Nth Root", code: "\\sqrt[n]{x}" },
         { label: "x² Superscript", code: "x^{2}" },
         { label: "x₂ Subscript", code: "x_{2}" },
+      ]
+    },
+    {
+      name: "Text Formatting",
+      items: [
+        { label: "Bold Text", code: "\\textbf{text}" },
+        { label: "Italic Text", code: "\\textit{text}" },
+        { label: "Underline", code: "\\underline{text}" },
+        { label: "Bold Math", code: "\\mathbf{x}" },
+        { label: "Blackboard Bold", code: "\\mathbb{R}" },
+        { label: "Calligraphic", code: "\\mathcal{A}" },
+        { label: "Roman Math", code: "\\mathrm{text}" },
+        { label: "Text in Math", code: "\\text{text}" },
       ]
     },
     {
