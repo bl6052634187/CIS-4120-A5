@@ -88,8 +88,10 @@ function LatexEditor() {
     {
       name: "Algebra",
       items: [
-        { label: "Σ Summation", interactive: true, fields: ["index", "start", "end", "expression"], template: "\\sum_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}" },
-        { label: "∏ Product", interactive: true, fields: ["index", "start", "end", "expression"], template: "\\prod_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}" },
+        { label: "Σ Summation", interactive: true, fields: ["index", "start", "end", "expression"], 
+          template: "\\sum_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}" },
+        { label: "∏ Product", interactive: true, fields: ["index", "start", "end", "expression"], 
+          template: "\\prod_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}" },
         { label: "± Plus/Minus", code: "\\pm" },
         { label: "≠ Not Equal", code: "\\neq" },
         { label: "≈ Approximately", code: "\\approx" },
@@ -184,7 +186,8 @@ function LatexEditor() {
     border: "1px solid rgba(255, 255, 255, 0.2)",
   };
   const firstCategoryHeaderStyle = { ...categoryHeaderStyle, marginTop: "0" };
-  const categoryTitleStyle = { fontSize: "0.875rem", fontWeight: "600", color: "rgba(255, 255, 255, 0.95)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 };
+  const categoryTitleStyle = { fontSize: "0.875rem", fontWeight: "600", color: "rgba(255, 255, 255, 0.95)", 
+    textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 };
   const chevronStyle = { fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.9)", transition: "transform 0.3s ease" };
   const snippetButtonStyle = {
     width: "100%",
@@ -265,8 +268,10 @@ function LatexEditor() {
                       if (item.interactive) setActiveSnippet(item);
                       else insertSnippet(item.code);
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)"; e.currentTarget.style.transform = "translateX(4px)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)"; e.currentTarget.style.transform = "translateX(0)"; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 
+                      "rgba(255, 255, 255, 0.25)"; e.currentTarget.style.transform = "translateX(4px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 
+                      "rgba(255, 255, 255, 0.15)"; e.currentTarget.style.transform = "translateX(0)"; }}
                   >
                     {item.label}
                   </button>
@@ -337,15 +342,25 @@ function SnippetModal({ snippet, onInsert, onClose }) {
   };
 
   // Convert template + values into preview LaTeX
+  const [focused, setFocused] = React.useState({});
+
+  const handleFocus = (field) => {
+    setFocused(prev => ({ ...prev, [field]: true }));
+  };
+
   const renderPreviewString = () => {
     let code = snippet.template;
     Object.keys(values).forEach(k => {
-      const val = values[k] || "\\color{red}{\\Box}";
+      let val = values[k];
+      if (!val) {
+        val = focused[k] ? "\\color{red}{\\Box}" : "\\color{black}{\\Box}";
+      }
       code = code.replaceAll(`{{${k}}}`, val);
       code = code.replaceAll(`{{{${k}}}}`, val);
     });
     return code;
   };
+
 
   const overlayStyle = {
     position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
@@ -373,6 +388,7 @@ function SnippetModal({ snippet, onInsert, onClose }) {
             placeholder={f}
             value={values[f]}
             onChange={e => handleChange(f, e.target.value)}
+            onFocus={() => handleFocus(f)}
           />
         ))}
 
@@ -389,10 +405,6 @@ function SnippetModal({ snippet, onInsert, onClose }) {
   );
 }
 
-
-
-
-// Preview component
 function Preview({ content }) {
   const previewRef = React.useRef();
   React.useEffect(() => {
