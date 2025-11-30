@@ -49,10 +49,10 @@ function LatexEditor() {
       name: "Basic",
       items: [
         { label: "⁄ Fraction", interactive: true, fields: ["numerator", "denominator"], template: "\\frac{{numerator}}{{denominator}}" },
-        { label: "√ Square Root", code: "\\sqrt{x}" },
+        { label: "√ Square Root", interactive: true, fields: ["radicand"], template: "\\sqrt{{{radicand}}}" },
         { label: "ⁿ√ Nth Root", interactive: true, fields: ["n", "radicand"], template: "\\sqrt[{{n}}]{{{radicand}}}" },
-        { label: "x² Superscript", code: "x^{2}" },
-        { label: "x₂ Subscript", code: "x_{2}" },
+        { label: "x² Superscript", interactive: true, fields: ["base", "exponent"], template: "{{base}}^{{{exponent}}}" },
+        { label: "x₂ Subscript", interactive: true, fields: ["base", "subscript"], template: "{{base}}^{{{subscript}}}" },
       ]
     },
     {
@@ -71,19 +71,25 @@ function LatexEditor() {
     {
       name: "Calculus",
       items: [
-        { label: "∫ Integral", interactive: true, fields: ["lower", "upper", "function"], template: "\\int_{{{lower}}}^{{{upper}}} {{{function}}} dx" },
-        { label: "∬ Double Integral", code: "\\iint_{D} f(x,y) dA" },
-        { label: "∮ Contour Integral", code: "\\oint_{C} f(z) dz" },
-        { label: "∂ Partial Derivative", code: "\\frac{\\partial f}{\\partial x}" },
-        { label: "∇ Gradient", code: "\\nabla f" },
-        { label: "lim Limit", code: "\\lim_{x \\to \\infty} f(x)" },
+        { label: "∫ Integral", interactive: true, fields: ["lower", "upper", "function"], 
+          template: "\\int_{{{lower}}}^{{{upper}}} {{{function}}} dx" },
+        { label: "∬ Double Integral", interactive: true, fields: ["region", "function", "integration variable"], 
+          template: "\\iint_{{{region}}} {{function}} d{{integration variable}}" },
+        { label: "∮ Contour Integral", interactive: true, fields: ["region", "function", "integration variable"], 
+          template: "\\oint_{{{region}}} {{function}} d{{integration variable}}" },
+        { label: "∂ Partial Derivative", interactive: true, fields: ["function", "variable"], 
+          template: "\\frac{\\partial {{function}}}{\\partial {{variable}}}" },
+        { label: "∇ Gradient", interactive: true, fields: ["function"], 
+          template: "\\nabla {{function}}" },
+        { label: "lim Limit", interactive: true, fields: ["limit variable", "limit", "function"], 
+          template: "\\lim_{{{limit variable}} \\to {{limit}}} {{function}}" },
       ]
     },
     {
       name: "Algebra",
       items: [
         { label: "Σ Summation", interactive: true, fields: ["index", "start", "end", "expression"], template: "\\sum_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}" },
-        { label: "∏ Product", code: "\\prod_{i=1}^{n} i" },
+        { label: "∏ Product", interactive: true, fields: ["index", "start", "end", "expression"], template: "\\prod_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}" },
         { label: "± Plus/Minus", code: "\\pm" },
         { label: "≠ Not Equal", code: "\\neq" },
         { label: "≈ Approximately", code: "\\approx" },
@@ -122,15 +128,18 @@ function LatexEditor() {
     {
       name: "Matrices",
       items: [
-        { label: "2×2 Matrix", code: "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}" },
-        { label: "3×3 Matrix", code: "\\begin{pmatrix} a & b & c \\\\ d & e & f \\\\ g & h & i \\end{pmatrix}" },
-        { label: "Determinant", code: "\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}" },
-        { label: "Bracket Matrix", code: "\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}" },
+        { label: "2×2 Matrix", interactive: true, fields: ["a11", "a12", "a21", "a22"], 
+          template: "\\begin{pmatrix} {{a11}} & {{a12}} \\\\ {{a21}} & {{a22}} \\end{pmatrix}" },
+        { label: "3×3 Matrix", interactive: true, fields: ["a11", "a12", "a13", "a21", "a22", "a23", "a31", "a32", "a33"], 
+          template: "\\begin{pmatrix} {{a11}} & {{a12}} & {{a13}} \\\\ {{a21}} & {{a22}} & {{a23}} \\\\ {{a31}} & {{a32}} & {{a33}} \\end{pmatrix}" },
+        { label: "Determinant", interactive: true, fields: ["a11", "a12", "a21", "a22"], 
+          template: "\\begin{vmatrix} {{a11}} & {{a12}} \\\\ {{a21}} & {{a22}} \\end{vmatrix}" },
+        { label: "Bracket Matrix", interactive: true, fields: ["a11", "a12", "a21", "a22"], 
+          template: "\\begin{bmatrix} {{a11}} & {{a12}} \\\\ {{a21}} & {{a22}} \\end{bmatrix}" },
       ]
     }
   ];
 
-  // Styles (keep your original ones)
   const containerStyle = {
     background: "white",
     borderRadius: "20px",
