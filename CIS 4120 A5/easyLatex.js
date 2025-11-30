@@ -31,9 +31,7 @@ function LatexEditor() {
     textarea.focus();
     textarea.setSelectionRange(start, end);
     document.execCommand('insertText', false, prefix + snippet);
-
     setText(newText);
-
     setTimeout(() => {
       textarea.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
@@ -46,19 +44,13 @@ function LatexEditor() {
     }));
   };
 
-  // LaTeX snippet definitions
   const latexCategories = [
     {
       name: "Basic",
       items: [
-        { 
-          label: "⁄ Fraction", 
-          interactive: true, 
-          fields: ["numerator", "denominator"], 
-          template: "\\frac{{numerator}}{{denominator}}" 
-        },
+        { label: "⁄ Fraction", interactive: true, fields: ["numerator", "denominator"], template: "\\frac{{numerator}}{{denominator}}" },
         { label: "√ Square Root", code: "\\sqrt{x}" },
-        { label: "ⁿ√ Nth Root", code: "\\sqrt[n]{x}" },
+        { label: "ⁿ√ Nth Root", interactive: true, fields: ["n", "radicand"], template: "\\sqrt[{{n}}]{{{radicand}}}" },
         { label: "x² Superscript", code: "x^{2}" },
         { label: "x₂ Subscript", code: "x_{2}" },
       ]
@@ -79,7 +71,7 @@ function LatexEditor() {
     {
       name: "Calculus",
       items: [
-        { label: "∫ Integral", code: "\\int_{a}^{b} f(x) dx" },
+        { label: "∫ Integral", interactive: true, fields: ["lower", "upper", "function"], template: "\\int_{{{lower}}}^{{{upper}}} {{{function}}} dx" },
         { label: "∬ Double Integral", code: "\\iint_{D} f(x,y) dA" },
         { label: "∮ Contour Integral", code: "\\oint_{C} f(z) dz" },
         { label: "∂ Partial Derivative", code: "\\frac{\\partial f}{\\partial x}" },
@@ -90,7 +82,7 @@ function LatexEditor() {
     {
       name: "Algebra",
       items: [
-        { label: "Σ Summation", code: "\\sum_{i=1}^{n} i^2" },
+        { label: "Σ Summation", interactive: true, fields: ["index", "start", "end", "expression"], template: "\\sum_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}" },
         { label: "∏ Product", code: "\\prod_{i=1}^{n} i" },
         { label: "± Plus/Minus", code: "\\pm" },
         { label: "≠ Not Equal", code: "\\neq" },
@@ -138,15 +130,7 @@ function LatexEditor() {
     }
   ];
 
-  const handleSnippetClick = (item) => {
-    if(item.interactive){
-      setActiveSnippet(item);
-    } else {
-      insertSnippet(item.code);
-    }
-  };
-
-  // ---------------- Styles (copied from original) ----------------
+  // Styles (keep your original ones)
   const containerStyle = {
     background: "white",
     borderRadius: "20px",
@@ -155,7 +139,6 @@ function LatexEditor() {
     minHeight: "80vh",
     overflow: "hidden",
   };
-
   const sidebarStyle = {
     width: "280px",
     background: "linear-gradient(180deg, #667eea 0%, #764ba2 100%)",
@@ -163,13 +146,11 @@ function LatexEditor() {
     overflowY: "auto",
     flexShrink: 0,
   };
-
   const mainContentStyle = {
     flex: 1,
     padding: "3rem",
     overflowY: "auto",
   };
-
   const headerStyle = {
     fontSize: "2.5rem",
     fontWeight: "700",
@@ -193,27 +174,9 @@ function LatexEditor() {
     transition: "all 0.2s ease",
     border: "1px solid rgba(255, 255, 255, 0.2)",
   };
-
-  const firstCategoryHeaderStyle = {
-    ...categoryHeaderStyle,
-    marginTop: "0",
-  };
-
-  const categoryTitleStyle = {
-    fontSize: "0.875rem",
-    fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.95)",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    margin: 0,
-  };
-
-  const chevronStyle = {
-    fontSize: "0.75rem",
-    color: "rgba(255, 255, 255, 0.9)",
-    transition: "transform 0.3s ease",
-  };
-
+  const firstCategoryHeaderStyle = { ...categoryHeaderStyle, marginTop: "0" };
+  const categoryTitleStyle = { fontSize: "0.875rem", fontWeight: "600", color: "rgba(255, 255, 255, 0.95)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 };
+  const chevronStyle = { fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.9)", transition: "transform 0.3s ease" };
   const snippetButtonStyle = {
     width: "100%",
     padding: "0.75rem 1rem",
@@ -229,12 +192,10 @@ function LatexEditor() {
     textAlign: "left",
     backdropFilter: "blur(10px)",
   };
-
   const categoryContentStyle = {
     overflow: "hidden",
     transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.3s ease",
   };
-
   const sectionTitleStyle = {
     fontSize: "1rem",
     fontWeight: "600",
@@ -243,7 +204,6 @@ function LatexEditor() {
     textTransform: "uppercase",
     letterSpacing: "0.05em",
   };
-
   const textareaStyle = {
     width: "100%",
     padding: "1.25rem",
@@ -257,7 +217,6 @@ function LatexEditor() {
     outline: "none",
     lineHeight: "1.6",
   };
-
   const clearButtonStyle = {
     padding: "0.875rem 2rem",
     fontSize: "0.95rem",
@@ -271,13 +230,10 @@ function LatexEditor() {
     marginTop: "1rem",
   };
 
-  // ---------------- Render ----------------
   return (
     <div style={containerStyle}>
       <div style={sidebarStyle}>
-        <h2 style={{ color: "white", fontSize: "1.25rem", fontWeight: "600", marginBottom: "1.5rem" }}>
-          LaTeX Snippets
-        </h2>
+        <h2 style={{ color: "white", fontSize: "1.25rem", fontWeight: "600", marginBottom: "1.5rem" }}>LaTeX Snippets</h2>
         {latexCategories.map((category, categoryIndex) => {
           const isOpen = openCategories[category.name];
           return (
@@ -291,26 +247,17 @@ function LatexEditor() {
                 <h3 style={categoryTitleStyle}>{category.name}</h3>
                 <span style={{ ...chevronStyle, transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
               </div>
-              <div style={{
-                ...categoryContentStyle,
-                maxHeight: isOpen ? "2000px" : "0px",
-                opacity: isOpen ? 1 : 0,
-                marginTop: isOpen ? "0.5rem" : "0",
-                marginBottom: isOpen ? "0.5rem" : "0"
-              }}>
+              <div style={{ ...categoryContentStyle, maxHeight: isOpen ? "2000px" : "0px", opacity: isOpen ? 1 : 0, marginTop: isOpen ? "0.5rem" : "0", marginBottom: isOpen ? "0.5rem" : "0" }}>
                 {category.items.map((item, itemIndex) => (
                   <button
                     key={itemIndex}
                     style={snippetButtonStyle}
-                    onClick={() => handleSnippetClick(item)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)";
-                      e.currentTarget.style.transform = "translateX(4px)";
+                    onClick={() => {
+                      if (item.interactive) setActiveSnippet(item);
+                      else insertSnippet(item.code);
                     }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
-                      e.currentTarget.style.transform = "translateX(0)";
-                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.25)"; e.currentTarget.style.transform = "translateX(4px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)"; e.currentTarget.style.transform = "translateX(0)"; }}
                   >
                     {item.label}
                   </button>
@@ -338,14 +285,8 @@ function LatexEditor() {
           <button
             style={clearButtonStyle}
             onClick={handleClear}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#e53e3e";
-              e.currentTarget.style.color = "white";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "white";
-              e.currentTarget.style.color = "#e53e3e";
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#e53e3e"; e.currentTarget.style.color = "white"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.color = "#e53e3e"; }}
           >
             Clear
           </button>
@@ -368,91 +309,58 @@ function LatexEditor() {
   );
 }
 
-// ---------------- Snippet Modal ----------------
+// Modal for interactive snippets
 function SnippetModal({ snippet, onInsert, onClose }) {
-  const [values, setValues] = React.useState(
-    snippet.fields ? snippet.fields.reduce((acc, field) => ({ ...acc, [field]: "" }), {}) : {}
-  );
+  const [values, setValues] = React.useState(() => snippet.fields.reduce((acc, f) => ({ ...acc, [f]: "" }), {}));
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setValues(prev => ({ ...prev, [name]: value }));
-  };
-
+  const handleChange = (field, val) => setValues(prev => ({ ...prev, [field]: val }));
   const handleInsert = () => {
-    let filledSnippet = snippet.template;
-    Object.keys(values).forEach(key => {
-      const re = new RegExp(`\\{${key}\\}`, "g");
-      filledSnippet = filledSnippet.replace(re, values[key] || key);
-    });
-    onInsert(filledSnippet);
+    let code = snippet.template;
+    Object.keys(values).forEach(k => { code = code.replaceAll(`{{${k}}}`, values[k]); code = code.replaceAll(`{{{${k}}}}`, values[k]); });
+    onInsert(code);
     onClose();
   };
 
-  return (
-    <>
-      <div style={{
-        position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
-        background: "rgba(0,0,0,0.3)", zIndex: 999
-      }} onClick={onClose}></div>
+  const overlayStyle = {
+    position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
+    background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
+  };
+  const modalStyle = { background: "white", padding: "2rem", borderRadius: "12px", minWidth: "320px", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" };
+  const inputStyle = { width: "100%", marginBottom: "1rem", padding: "0.5rem 0.75rem", fontSize: "1rem", borderRadius: "6px", border: "1px solid #ccc" };
+  const buttonStyle = { padding: "0.5rem 1rem", marginRight: "0.5rem", borderRadius: "6px", cursor: "pointer" };
 
-      <div style={{
-        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-        background: "white", padding: "2rem", borderRadius: "12px", zIndex: 1000
-      }}>
-        <h2 style={{ marginBottom: "1rem" }}>Fill in {snippet.label}</h2>
-        {snippet.fields.map(field => (
-          <div key={field} style={{ marginBottom: "0.75rem" }}>
-            <label>
-              {field}:
-              <input
-                type="text"
-                name={field}
-                value={values[field]}
-                onChange={handleChange}
-                style={{ marginLeft: "0.5rem", padding: "0.25rem 0.5rem" }}
-              />
-            </label>
-          </div>
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={e => e.stopPropagation()}>
+        <h3 style={{ marginBottom: "1rem" }}>{snippet.label}</h3>
+        {snippet.fields.map(f => (
+          <input
+            key={f}
+            style={inputStyle}
+            placeholder={f}
+            value={values[f]}
+            onChange={e => handleChange(f, e.target.value)}
+          />
         ))}
-        <button onClick={handleInsert} style={{ marginRight: "1rem" }}>Insert</button>
-        <button onClick={onClose}>Cancel</button>
+        <div style={{ textAlign: "right" }}>
+          <button style={buttonStyle} onClick={handleInsert}>Insert</button>
+          <button style={buttonStyle} onClick={onClose}>Cancel</button>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
-// ---------------- Preview ----------------
+// Preview component
 function Preview({ content }) {
   const previewRef = React.useRef();
-
   React.useEffect(() => {
     if (previewRef.current) {
-      try {
-        katex.render(content, previewRef.current, {
-          throwOnError: false,
-          displayMode: true,
-        });
-      } catch (e) {
-        previewRef.current.textContent = e.message;
-      }
+      try { katex.render(content, previewRef.current, { throwOnError: false, displayMode: true }); }
+      catch (e) { previewRef.current.textContent = e.message; }
     }
   }, [content]);
-
-  const previewStyle = {
-    background: "#f7fafc",
-    border: "2px solid #e2e8f0",
-    borderRadius: "10px",
-    padding: "2rem",
-    minHeight: "120px",
-    fontSize: "1.25rem",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "all 0.3s ease",
-  };
-
-  return <div style={previewStyle} ref={previewRef}></div>;
+  return <div ref={previewRef} style={{ background: "#f7fafc", border: "2px solid #e2e8f0", borderRadius: "10px", padding: "2rem", minHeight: "120px", fontSize: "1.25rem", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease" }}></div>;
 }
 
 ReactDOM.createRoot(document.getElementById("app")).render(<LatexEditor />);
