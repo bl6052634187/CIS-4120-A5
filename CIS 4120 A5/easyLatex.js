@@ -48,7 +48,7 @@ function LatexEditor() {
     {
       name: "Basic",
       items: [
-        { label: "⁄ Fraction", interactive: true, fields: ["numerator", "denominator"], template: "\\frac{{numerator}}{{denominator}}" },
+        { label: "⁄ Fraction", interactive: true, fields: ["numerator", "denominator"], template: "\\frac{{{numerator}}}{{{denominator}}}" },
         { label: "√ Square Root", interactive: true, fields: ["radicand"], template: "\\sqrt{{{radicand}}}" },
         { label: "ⁿ√ Nth Root", interactive: true, fields: ["n", "radicand"], template: "\\sqrt[{{n}}]{{{radicand}}}" },
         { label: "x² Superscript", interactive: true, fields: ["base", "exponent"], template: "{{base}}^{{{exponent}}}" },
@@ -320,28 +320,52 @@ function LatexEditor() {
 
 // Modal for interactive snippets
 function SnippetModal({ snippet, onInsert, onClose }) {
-  const [values, setValues] = React.useState(() => snippet.fields.reduce((acc, f) => ({ ...acc, [f]: "" }), {}));
+  const [values, setValues] = React.useState(
+    () => snippet.fields.reduce((acc, f) => ({ ...acc, [f]: "" }), {})
+  );
 
   const handleChange = (field, val) => setValues(prev => ({ ...prev, [field]: val }));
+
   const handleInsert = () => {
     let code = snippet.template;
-    Object.keys(values).forEach(k => { code = code.replaceAll(`{{${k}}}`, values[k]); code = code.replaceAll(`{{{${k}}}}`, values[k]); });
+    Object.keys(values).forEach(k => {
+      code = code.replaceAll(`{{${k}}}`, values[k]);
+      code = code.replaceAll(`{{{${k}}}}`, values[k]);
+    });
     onInsert(code);
     onClose();
+  };
+
+  // Convert template + values into preview LaTeX
+  const renderPreviewString = () => {
+    let code = snippet.template;
+    Object.keys(values).forEach(k => {
+      const val = values[k] || "\\color{red}{\\Box}";
+      code = code.replaceAll(`{{${k}}}`, val);
+      code = code.replaceAll(`{{{${k}}}}`, val);
+    });
+    return code;
   };
 
   const overlayStyle = {
     position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
     background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
   };
-  const modalStyle = { background: "white", padding: "2rem", borderRadius: "12px", minWidth: "320px", boxShadow: "0 10px 40px rgba(0,0,0,0.3)" };
-  const inputStyle = { width: "100%", marginBottom: "1rem", padding: "0.5rem 0.75rem", fontSize: "1rem", borderRadius: "6px", border: "1px solid #ccc" };
+  const modalStyle = {
+    background: "white", padding: "2rem", borderRadius: "12px", minWidth: "350px",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.3)"
+  };
+  const inputStyle = {
+    width: "100%", marginBottom: "1rem", padding: "0.5rem 0.75rem", fontSize: "1rem",
+    borderRadius: "6px", border: "1px solid #ccc"
+  };
   const buttonStyle = { padding: "0.5rem 1rem", marginRight: "0.5rem", borderRadius: "6px", cursor: "pointer" };
 
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={e => e.stopPropagation()}>
         <h3 style={{ marginBottom: "1rem" }}>{snippet.label}</h3>
+
         {snippet.fields.map(f => (
           <input
             key={f}
@@ -351,7 +375,12 @@ function SnippetModal({ snippet, onInsert, onClose }) {
             onChange={e => handleChange(f, e.target.value)}
           />
         ))}
-        <div style={{ textAlign: "right" }}>
+
+        <div style={{ margin: "1rem 0", padding: "0.75rem", background: "#f7fafc", border: "1px solid #e2e8f0", borderRadius: "6px", fontSize: "1.25rem" }}>
+          <Preview content={renderPreviewString()} />
+        </div>
+
+        <div style={{ textAlign: "right", marginTop: "0.5rem" }}>
           <button style={buttonStyle} onClick={handleInsert}>Insert</button>
           <button style={buttonStyle} onClick={onClose}>Cancel</button>
         </div>
@@ -359,6 +388,9 @@ function SnippetModal({ snippet, onInsert, onClose }) {
     </div>
   );
 }
+
+
+
 
 // Preview component
 function Preview({ content }) {
