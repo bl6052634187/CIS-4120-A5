@@ -144,24 +144,21 @@ function LatexEditor({ currentUser }) {
     const textBefore = text.substring(0, start);
     const textAfter = text.substring(end);
 
-    // Adjust snippet for context: if it is wrapped in dollar signs and being inserted
-    // inside existing math, strip the outer `$...$` so nested expressions don't break.
+    // Add newline before snippet if not at start of line
+    const isStartOfLine = start === 0 || textBefore[textBefore.length - 1] === '\n';
+    const prefix = isStartOfLine ? "" : "\n";
+    
+    // Adjust snippet for nested mode: only strip dollar signs when in nested mode (modal is open)
+    // Otherwise, keep dollar signs intact
     let adjustedSnippet = snippet;
     if (typeof snippet === "string" && snippet.startsWith("$") && snippet.endsWith("$")) {
-      const charBefore = textBefore.length > 0 ? textBefore[textBefore.length - 1] : "";
-      const charAfter = textAfter.length > 0 ? textAfter[0] : "";
-      const nonWhitespace = (ch) => ch && !/\s/.test(ch);
-
-      const likelyNestedContext =
-        nonWhitespace(charBefore) || nonWhitespace(charAfter);
-
-      if (likelyNestedContext) {
+      // Only strip dollar signs in nested mode (when activeSnippet is set, meaning modal is open)
+      if (activeSnippet) {
         adjustedSnippet = stripOuterMathDelimiters(snippet);
       }
+      // Otherwise, keep dollar signs as-is
     }
 
-    const prefix =
-      start > 0 && textBefore[textBefore.length - 1] !== " " ? " " : "";
     const newText = textBefore + prefix + adjustedSnippet + textAfter;
     const newCursorPos = start + prefix.length + adjustedSnippet.length;
 
@@ -578,11 +575,11 @@ ${contentText}
           template: "$\\sum_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}$", mathContext: true },
         { label: "∏ Product", interactive: true, fields: ["index", "start", "end", "expression"], 
           template: "$\\prod_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}$", mathContext: true },
-        { label: "± Plus/Minus", code: "$\\pm$" },
-        { label: "≠ Not Equal", code: "$\\neq$" },
-        { label: "≈ Approximately", code: "$\\approx$" },
-        { label: "≤ Less or Equal", code: "$\\leq$" },
-        { label: "≥ Greater or Equal", code: "$\\geq$" },
+        { label: "± Plus/Minus", code: "$\\pm$", allowedInMath: true },
+        { label: "≠ Not Equal", code: "$\\neq$", allowedInMath: true },
+        { label: "≈ Approximately", code: "$\\approx$", allowedInMath: true },
+        { label: "≤ Less or Equal", code: "$\\leq$", allowedInMath: true },
+        { label: "≥ Greater or Equal", code: "$\\geq$", allowedInMath: true },
       ]
     },
     {
