@@ -373,6 +373,7 @@ ${trimmed}
         { label: "⁄ Fraction", interactive: true, fields: ["numerator", "denominator"], template: "$\\frac{{{numerator}}}{{{denominator}}}$" },
         { label: "√ Square Root", interactive: true, fields: ["radicand"], template: "$\\sqrt{{{radicand}}}$" },
         { label: "ⁿ√ Nth Root", interactive: true, fields: ["n", "radicand"], template: "$\\sqrt[{{n}}]{{{radicand}}}$" },
+        { label: "√⁄ Fraction Within Root", interactive: true, fields: ["numerator", "denominator"], template: "$\\sqrt{\\frac{{{numerator}}}{{{denominator}}}}$" },
         { label: "x² Superscript", interactive: true, fields: ["base", "exponent"], template: "${{base}}^{{{exponent}}}$" },
         { label: "x₂ Subscript", interactive: true, fields: ["base", "subscript"], template: "${{base}}_{{{subscript}}}$" },
       ]
@@ -380,6 +381,9 @@ ${trimmed}
     {
       name: "Text Formatting",
       items: [
+        { label: "Bold Text", code: "$\\text{\\textbf{text}}$" },
+        { label: "Italic Text", code: "$\\text{\\textit{text}}$" },
+        { label: "Underline", code: "$\\text{\\underline{text}}$" },
         { label: "Bold Math", code: "$\\mathbf{x}$" },
         { label: "Blackboard Bold", code: "$\\mathbb{R}$" },
         { label: "Calligraphic", code: "$\\mathcal{A}$" },
@@ -388,8 +392,8 @@ ${trimmed}
         { label: "Section Heading", code: "\\section{Title}" },
         { label: "Subsection Heading", code: "\\subsection{Subtitle}" },
         { label: "Subsubsection Heading", code: "\\subsubsection{Sub-subtitle}" },
-        { label: "Bullet List (itemize)", code: "\\begin{itemize}\n  \\item First item\n  \\item Second item\n\\end{itemize}" },
-        { label: "Numbered List (enumerate)", code: "\\begin{enumerate}\n  \\item First item\n  \\item Second item\n\\end{enumerate}" },
+        { label: "Bullet List (itemize)", code: "$\\bullet \\text{ First item} \\\\ \n \\bullet \\text{ Second item} \\\\ \n \\bullet \\text{ Third item}$" },
+        { label: "Numbered List (enumerate)", code: "$\\text{1. First item} \\\\ \n \\text{2. Second item} \\\\ \n \\text{3. Third item}$" },
         { label: "Description List", code: "\\begin{description}\n  \\item[Term 1] Definition 1\n  \\item[Term 2] Definition 2\n\\end{description}" },
       ]
     },
