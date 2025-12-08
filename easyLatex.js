@@ -365,8 +365,8 @@ ${contentText}
     <link rel="stylesheet" href="${katexCssHref}" />
     <style>
       @page { size: letter; margin: 1in; }
-      body { margin: 1in; }
-      pre { white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", monospace; font-size: 12px; }
+      body { margin: 1in; word-wrap: break-word; overflow-wrap: anywhere; }
+      pre { white-space: pre-wrap; word-wrap: break-word; overflow-wrap: anywhere; font-family: "Courier New", monospace; font-size: 12px; }
       table { border-collapse: collapse; margin: 1rem 0; width: 100%; border: 1px solid #cbd5e0; }
       table td { border: 1px solid #cbd5e0; padding: 0.5rem 0.75rem; text-align: center; }
     </style>
@@ -575,7 +575,7 @@ ${contentText}
     borderRadius: "20px",
     boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
     display: "flex",
-    minHeight: "85vh",
+    minHeight: "100vh",
     width: "100%",
     overflow: "hidden",
   };
@@ -598,7 +598,7 @@ ${contentText}
     gap: "2rem",
     alignItems: "stretch",
     marginBottom: "2rem",
-    minHeight: "60vh",
+    minHeight: "80vh",
     flex: 1,
     overflow: "hidden",
   };
@@ -1418,6 +1418,8 @@ ${contentText}
       ref={previewRef}
       style={{
         background: "#f7fafc",
+        wordBreak: "break-word",
+        overflowWrap: "anywhere",
         border: "2px solid #e2e8f0",
         borderRadius: "10px",
         padding: "2rem",
@@ -1521,68 +1523,60 @@ function LandingPage({ onGetStarted }) {
   const badgeStyle = {
     display: "inline-flex",
     alignItems: "center",
-    padding: "0.25rem 0.8rem",
+    padding: "0.25rem 0.85rem",
     borderRadius: "999px",
-    fontSize: "0.75rem",
+    fontSize: "0.72rem",
     fontWeight: "600",
-    letterSpacing: "0.08em",
+    letterSpacing: "0.14em",
     textTransform: "uppercase",
-    background: "rgba(15,23,42,0.4)",
+    background: "rgba(15,23,42,0.45)",
     color: "#CBD5F5",
-    marginBottom: "0.85rem",
+    marginBottom: "0.9rem",
+    border: "1px solid rgba(148,163,184,0.6)",
   };
-
+ 
   const titleStyle = {
-    fontSize: "2.7rem",
+    fontSize: "2.6rem",
     lineHeight: 1.15,
     fontWeight: "800",
     color: "#F7FAFC",
-    marginBottom: "0.6rem",
+    marginBottom: "0.5rem",
     maxWidth: "30rem",
   };
 
   const accentSpanStyle = {
-    background: "linear-gradient(135deg, #fbd38d 0%, #fed7e2 50%, #e9d8fd 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
+    color: "#E9D8FD",
+    fontWeight: "800",
   };
 
   const bodyStyle = {
-    fontSize: "0.98rem",
+    fontSize: "0.95rem",
     color: "#E2E8F0",
-    maxWidth: "34rem",
-    marginBottom: "0.75rem",
-  };
-
-  const secondaryBodyStyle = {
-    fontSize: "0.9rem",
-    color: "#CBD5F5",
-    maxWidth: "32rem",
-    marginBottom: "1rem",
+    maxWidth: "30rem",
+    marginBottom: "0.6rem",
   };
 
   const bulletListStyle = {
     listStyle: "none",
     padding: 0,
-    margin: "0.4rem 0 0",
+    margin: "0.3rem 0 0",
   };
-
+ 
   const bulletItemStyle = {
     display: "flex",
     alignItems: "flex-start",
-    gap: "0.5rem",
-    fontSize: "0.9rem",
+    gap: "0.45rem",
+    fontSize: "0.88rem",
     color: "#E2E8F0",
-    marginBottom: "0.3rem",
+    marginBottom: "0.25rem",
   };
-
+ 
   const bulletDotStyle = {
-    width: "0.55rem",
-    height: "0.55rem",
+    width: "0.45rem",
+    height: "0.45rem",
     borderRadius: "999px",
     background: "#48BB78",
-    marginTop: "0.35rem",
+    marginTop: "0.38rem",
     flexShrink: 0,
   };
 
@@ -1611,51 +1605,7 @@ function LandingPage({ onGetStarted }) {
     opacity: 0.85,
   };
 
-  const stepsRowStyle = {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: "1rem",
-    marginTop: "1.7rem",
-  };
-
-  const stepCardStyle = {
-    borderRadius: "14px",
-    border: "1px solid rgba(226,232,240,0.65)",
-    background: "rgba(15,23,42,0.18)",
-    padding: "0.85rem 0.9rem",
-    fontSize: "0.8rem",
-    color: "#E2E8F0",
-  };
-
-  const stepHeaderStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    marginBottom: "0.25rem",
-  };
-
-  const stepNumberStyle = {
-    width: "1.3rem",
-    height: "1.3rem",
-    borderRadius: "999px",
-    border: "1px solid rgba(226,232,240,0.9)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "0.8rem",
-    fontWeight: "600",
-    color: "#EDF2FF",
-  };
-
-  const stepTitleStyle = {
-    fontSize: "0.88rem",
-    fontWeight: "600",
-  };
-
-  const stepBodyStyle = {
-    fontSize: "0.8rem",
-    color: "#E2E8F0",
-  };
+  // Removed detailed three-step cards to keep hero lighter
 
   const panelStyle = {
     background: "rgba(15,23,42,0.92)",
@@ -1727,27 +1677,10 @@ function LandingPage({ onGetStarted }) {
               <span style={accentSpanStyle}>without its steep learning curve.</span>
             </h1>
             <p style={bodyStyle}>
-              Easy LaTeX is a fill‑in‑the‑blank editor for students, instructors, and LaTeX
-              beginners who want expressive equations without memorizing fragile commands.
+              Easy LaTeX is a guided editor for equations — start from a template, fill in a few
+              labeled fields, and get clean LaTeX plus beautifully typeset math for homework, exams,
+              and quick notes.
             </p>
-            <p style={secondaryBodyStyle}>
-              Start from a template, fill in clearly labeled fields, and see both the
-              nicely typeset math and the underlying LaTeX update instantly.
-            </p>
-            <ul style={bulletListStyle}>
-              <li style={bulletItemStyle}>
-                <div style={bulletDotStyle} />
-                <span>Write equations and mathematical entities more conveniently with guided building blocks.</span>
-              </li>
-              <li style={bulletItemStyle}>
-                <div style={bulletDotStyle} />
-                <span>Create an easier entry point into LaTeX for homework, exams, and lecture notes.</span>
-              </li>
-              <li style={bulletItemStyle}>
-                <div style={bulletDotStyle} />
-                <span>Stop fearing notation — focus on the math while Easy LaTeX handles the syntax.</span>
-              </li>
-            </ul>
             <div style={ctaRowStyle}>
               <button type="button" style={primaryButtonStyle} onClick={onGetStarted}>
                 Start writing equations
@@ -1755,37 +1688,6 @@ function LandingPage({ onGetStarted }) {
               <span style={helperTextStyle}>Local‑only demo — your LaTeX stays in this browser.</span>
             </div>
 
-            <div style={stepsRowStyle}>
-              <div style={stepCardStyle}>
-                <div style={stepHeaderStyle}>
-                  <div style={stepNumberStyle}>1</div>
-                  <div style={stepTitleStyle}>Choose a template</div>
-                </div>
-                <div style={stepBodyStyle}>
-                  Pick a fraction, integral, matrix, limit, or other structure from curated categories.
-                </div>
-              </div>
-              <div style={stepCardStyle}>
-                <div style={stepHeaderStyle}>
-                  <div style={stepNumberStyle}>2</div>
-                  <div style={stepTitleStyle}>Fill in the blanks</div>
-                </div>
-                <div style={stepBodyStyle}>
-                  Complete clearly named fields like “numerator” or “lower bound” — the LaTeX stays valid
-                  by construction.
-                </div>
-              </div>
-              <div style={stepCardStyle}>
-                <div style={stepHeaderStyle}>
-                  <div style={stepNumberStyle}>3</div>
-                  <div style={stepTitleStyle}>Use the LaTeX anywhere</div>
-                </div>
-                <div style={stepBodyStyle}>
-                  Copy the generated LaTeX into documents and slides, or export a clean PDF of the rendered
-                  equations.
-                </div>
-              </div>
-            </div>
           </div>
 
           <aside style={panelStyle}>
