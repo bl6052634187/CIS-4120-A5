@@ -75,13 +75,13 @@ function LatexEditor({ currentUser }) {
   const [text, setText] = React.useState("");
   const textareaRef = React.useRef(null);
   const [openCategories, setOpenCategories] = React.useState({
-    "Basic": true,
-    "Text Formatting": true,
-    "Calculus": true,
-    "Algebra": true,
-    "Greek Letters": true,
-    "Sets & Logic": true,
-    "Matrices": true
+    "Basic": false,
+    "Text Formatting": false,
+    "Calculus": false,
+    "Algebra": false,
+    "Greek Letters": false,
+    "Sets & Logic": false,
+    "Matrices": false
   });
   const [activeSnippet, setActiveSnippet] = React.useState(null);
   const [isResizing, setIsResizing] = React.useState(false);
@@ -140,7 +140,7 @@ function LatexEditor({ currentUser }) {
           .join(" & ")
       )
       .join(" \\\\\n");
-    return `$\\begin{tabular}{${colSpec}}\n${body}\n\\end{tabular}$`;
+    return `\\begin{tabular}{${colSpec}}\n${body}\n\\end{tabular}`;
   };
 
   const getStorageKey = () =>
@@ -222,40 +222,134 @@ function LatexEditor({ currentUser }) {
 
     let bodyHtml = "";
     if (trimmed) {
-      const isFullDocument =
-        trimmed.includes("\\begin{document}") ||
-        trimmed.includes("\\documentclass");
+      // Check if content has tables
+      const hasTables = trimmed.includes("\\begin{tabular}");
+      
+      if (!hasTables) {
+        // No tables - render normally
+        // No tables - render normally
+        const isFullDocument =
+          trimmed.includes("\\begin{document}") ||
+          trimmed.includes("\\documentclass");
 
-      if (window.latexjs) {
-        try {
-          const generator = new window.latexjs.HtmlGenerator({ hyphenate: false });
-        const source = isFullDocument
-          ? trimmed
-          : `\\documentclass{article}
+        if (window.latexjs) {
+          try {
+            const generator = new window.latexjs.HtmlGenerator({ hyphenate: false });
+            const source = isFullDocument
+              ? trimmed
+              : `\\documentclass{article}
 \\begin{document}
 ${trimmed}
 \\end{document}`;
-        const finalSource = ensureXcolorPackage(source);
-        window.latexjs.parse(finalSource, { generator });
-          const temp = document.createElement("div");
-          temp.appendChild(generator.domFragment());
-          bodyHtml = applyFakeTextFormatting(temp.innerHTML);
-        } catch (e) {
-          bodyHtml = `<pre>${escapeHtml(trimmed)}</pre>`;
-        }
-      } else if (window.katex) {
-        try {
-          const rendered = window.katex.renderToString(trimmed, {
-            throwOnError: false,
-            displayMode: true,
-          });
-          bodyHtml = rendered;
-        } catch (e) {
+            const finalSource = ensureXcolorPackage(source);
+            window.latexjs.parse(finalSource, { generator });
+            const temp = document.createElement("div");
+            temp.appendChild(generator.domFragment());
+            bodyHtml = applyFakeTextFormatting(temp.innerHTML);
+          } catch (e) {
+            bodyHtml = `<pre>${escapeHtml(trimmed)}</pre>`;
+          }
+        } else if (window.katex) {
+          try {
+            const rendered = window.katex.renderToString(trimmed, {
+              throwOnError: false,
+              displayMode: true,
+            });
+            bodyHtml = rendered;
+          } catch (e) {
+            bodyHtml = `<pre>${escapeHtml(trimmed)}</pre>`;
+          }
+        } else {
           bodyHtml = `<pre>${escapeHtml(trimmed)}</pre>`;
         }
       } else {
-        bodyHtml = `<pre>${escapeHtml(trimmed)}</pre>`;
+        // Has tables - extract and render parts separately
+        let parts, tabulars;
+        try {
+          const result = extractTabulars(trimmed);
+          parts = result.parts;
+          tabulars = result.tabulars;
+        } catch (e) {
+          console.error('Error extracting tabulars for PDF:', e);
+          // Fallback: render as plain text
+          bodyHtml = `<pre>${escapeHtml(trimmed)}</pre>`;
+          // Continue to write the document
+        }
+        
+        if (!parts || parts.length === 0) {
+          bodyHtml = `<pre>${escapeHtml(trimmed)}</pre>`;
+        } else {
+          const htmlParts = [];
+          
+          parts.forEach((part, index) => {
+          try {
+            if (part.type === 'tabular') {
+              // Render table to HTML
+              const tableContainer = document.createElement("div");
+              renderSimpleTabular(tableContainer, part.fullMatch);
+              const tableHtml = tableContainer.innerHTML;
+              if (tableHtml) {
+                htmlParts.push(tableHtml);
+              } else {
+                // Fallback if table rendering fails
+                htmlParts.push(`<pre>${escapeHtml(part.fullMatch)}</pre>`);
+              }
+            } else if (part.text !== undefined) {
+              const contentText = part.text || '';
+              // Always render first and last parts, skip empty middle parts
+              if (!contentText.trim() && index !== 0 && index !== parts.length - 1) {
+                return;
+              }
+              
+              const isFullDocument =
+                contentText.includes("\\begin{document}") ||
+                contentText.includes("\\documentclass");
+
+              if (window.latexjs) {
+                const generator = new window.latexjs.HtmlGenerator({ hyphenate: false });
+                const source = isFullDocument
+                  ? contentText
+                  : `\\documentclass{article}
+\\begin{document}
+${contentText}
+\\end{document}`;
+                const finalSource = ensureXcolorPackage(source);
+                window.latexjs.parse(finalSource, { generator });
+                const temp = document.createElement("div");
+                temp.appendChild(generator.domFragment());
+                const html = applyFakeTextFormatting(temp.innerHTML);
+                htmlParts.push(html);
+              } else if (window.katex) {
+                const rendered = window.katex.renderToString(contentText, {
+                  throwOnError: false,
+                  displayMode: true,
+                });
+                htmlParts.push(rendered);
+              } else {
+                htmlParts.push(`<pre>${escapeHtml(contentText)}</pre>`);
+              }
+            }
+          } catch (e) {
+            console.error('Error rendering part for PDF:', e, part);
+            // Fallback: render as plain text
+            htmlParts.push(`<pre>${escapeHtml(part.type === 'tabular' ? part.fullMatch : (part.text || ''))}</pre>`);
+          }
+          });
+          
+          bodyHtml = htmlParts.join('');
+          
+          // Debug: log if bodyHtml is empty
+          if (!bodyHtml || bodyHtml.trim() === '') {
+            console.error('PDF export: bodyHtml is empty after processing parts', parts);
+            bodyHtml = `<pre>${escapeHtml(trimmed)}</pre>`;
+          }
+        }
       }
+    }
+    
+    // Ensure we always have some HTML
+    if (!bodyHtml || bodyHtml.trim() === '') {
+      bodyHtml = `<pre>${escapeHtml(trimmed || 'Empty document')}</pre>`;
     }
 
     const latexCssHref = "https://cdn.jsdelivr.net/npm/latex.js@0.12.6/dist/latex.css";
@@ -273,6 +367,8 @@ ${trimmed}
       @page { size: letter; margin: 1in; }
       body { margin: 1in; }
       pre { white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", monospace; font-size: 12px; }
+      table { border-collapse: collapse; margin: 1rem 0; width: 100%; border: 1px solid #cbd5e0; }
+      table td { border: 1px solid #cbd5e0; padding: 0.5rem 0.75rem; text-align: center; }
     </style>
   </head>
   <body>
@@ -326,6 +422,7 @@ ${trimmed}
     const hex = normalizeHexColor(textColor);
     applyToSelection((selected) => `\\color{${hex}}{${selected}}`);
   };
+
 
   // Drag-to-resize behavior between editor and preview
   React.useEffect(() => {
@@ -509,6 +606,7 @@ ${trimmed}
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
+    position: "relative",
   };
   const previewSectionStyle = {
     display: "flex",
@@ -615,19 +713,31 @@ ${trimmed}
     gap: "0.75rem",
   };
   const docSelectStyle = {
-    padding: "0.35rem 0.6rem",
-    borderRadius: "999px",
+    padding: "0.5rem 2.5rem 0.5rem 1rem",
+    borderRadius: "8px",
     border: "1px solid #cbd5e0",
     fontSize: "0.85rem",
+    fontWeight: "500",
     background: "white",
+    cursor: "pointer",
+    color: "#4a5568",
+    appearance: "none",
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a5568' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 0.75rem center",
+    transition: "all 0.2s ease",
+    outline: "none",
   };
   const headerSmallButtonStyle = {
-    padding: "0.4rem 0.9rem",
-    borderRadius: "999px",
+    padding: "0.5rem 1rem",
+    borderRadius: "8px",
     border: "1px solid #cbd5e0",
     background: "white",
-    fontSize: "0.8rem",
+    fontSize: "0.85rem",
+    fontWeight: "500",
     cursor: "pointer",
+    transition: "all 0.2s ease",
+    color: "#4a5568",
   };
   const colorControlsRowStyle = {
     display: "flex",
@@ -662,6 +772,7 @@ ${trimmed}
     background: "white",
     cursor: "pointer",
   };
+
 
   const openSizeModal = (mode) => {
     setSizeModalMode(mode);
@@ -747,6 +858,24 @@ ${trimmed}
               style={docSelectStyle}
               value={currentDocId || ""}
               onChange={(e) => handleSelectDocument(e.target.value)}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#667eea";
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#cbd5e0";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+              onMouseEnter={(e) => {
+                if (document.activeElement !== e.currentTarget) {
+                  e.currentTarget.style.borderColor = "#a0aec0";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (document.activeElement !== e.currentTarget) {
+                  e.currentTarget.style.borderColor = "#cbd5e0";
+                }
+              }}
             >
               {documents.map((doc) => (
                 <option key={doc.id} value={doc.id}>
@@ -758,6 +887,14 @@ ${trimmed}
               type="button"
               style={headerSmallButtonStyle}
               onClick={handleNewDocument}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f7fafc";
+                e.currentTarget.style.borderColor = "#667eea";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "white";
+                e.currentTarget.style.borderColor = "#cbd5e0";
+              }}
             >
               New
             </button>
@@ -765,11 +902,24 @@ ${trimmed}
               type="button"
               style={headerSmallButtonStyle}
               onClick={handleExportPdf}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f7fafc";
+                e.currentTarget.style.borderColor = "#667eea";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "white";
+                e.currentTarget.style.borderColor = "#cbd5e0";
+              }}
             >
               Export PDF
             </button>
             <button
-              style={{ ...clearButtonStyle, marginTop: 0 }}
+              type="button"
+              style={{
+                ...headerSmallButtonStyle,
+                borderColor: "#e53e3e",
+                color: "#e53e3e",
+              }}
               onClick={handleClear}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "#e53e3e";
@@ -1017,7 +1167,10 @@ function SizeModal({
 }
 
 function renderSimpleTabular(container, latexSource) {
-  const match = latexSource.match(/\\begin{tabular}\{([^}]*)\}([\s\S]*?)\\end{tabular}/);
+  // Remove math mode wrappers ($...$) if present
+  let cleanedSource = latexSource.replace(/^\$+|\$+$/g, '');
+  
+  const match = cleanedSource.match(/\\begin{tabular}\{([^}]*)\}([\s\S]*?)\\end{tabular}/);
   if (!match) {
     const pre = document.createElement("pre");
     pre.textContent = latexSource;
@@ -1029,6 +1182,8 @@ function renderSimpleTabular(container, latexSource) {
   const table = document.createElement("table");
   table.style.borderCollapse = "collapse";
   table.style.margin = "1rem 0";
+  table.style.width = "100%";
+  table.style.border = "1px solid #cbd5e0";
 
   const rows = body.split(/\\\\\s*/);
   rows.forEach((rowStr) => {
@@ -1039,13 +1194,105 @@ function renderSimpleTabular(container, latexSource) {
       const td = document.createElement("td");
       td.textContent = cellStr.trim();
       td.style.border = "1px solid #cbd5e0";
-      td.style.padding = "0.25rem 0.5rem";
+      td.style.padding = "0.5rem 0.75rem";
+      td.style.textAlign = "center";
       tr.appendChild(td);
     });
     table.appendChild(tr);
   });
 
   container.appendChild(table);
+}
+
+function renderLaTeXContent(contentText, targetContainer) {
+  if (!contentText || !contentText.trim()) return;
+  
+  try {
+    const isFullDocument =
+      contentText.includes("\\begin{document}") ||
+      contentText.includes("\\documentclass");
+
+    if (window.latexjs) {
+      const generator = new window.latexjs.HtmlGenerator({ hyphenate: false });
+      const source = isFullDocument
+        ? contentText
+        : `\\documentclass{article}
+\\begin{document}
+${contentText}
+\\end{document}`;
+      const finalSource = ensureXcolorPackage(source);
+      window.latexjs.parse(finalSource, { generator });
+      const temp = document.createElement("div");
+      temp.appendChild(generator.domFragment());
+      const html = applyFakeTextFormatting(temp.innerHTML);
+      targetContainer.innerHTML = html;
+    } else if (window.katex) {
+      window.katex.render(contentText, targetContainer, {
+        throwOnError: false,
+        displayMode: true,
+      });
+    } else {
+      const pre = document.createElement("pre");
+      pre.style.whiteSpace = "pre-wrap";
+      pre.textContent = contentText;
+      targetContainer.appendChild(pre);
+    }
+  } catch (e) {
+    console.error('Error rendering LaTeX content:', e);
+    const pre = document.createElement("pre");
+    pre.style.whiteSpace = "pre-wrap";
+    pre.textContent = contentText;
+    targetContainer.appendChild(pre);
+  }
+}
+
+function extractTabulars(content) {
+  const tabularRegex = /\\begin{tabular}\{([^}]*)\}([\s\S]*?)\\end{tabular}/g;
+  const tabulars = [];
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  
+  // Find all tabular environments and split content around them
+  while ((match = tabularRegex.exec(content)) !== null) {
+    // Add content before this tabular
+    if (match.index > lastIndex) {
+      parts.push({
+        type: 'content',
+        text: content.substring(lastIndex, match.index)
+      });
+    }
+    
+    // Add tabular
+    parts.push({
+      type: 'tabular',
+      fullMatch: match[0],
+      colSpec: match[1],
+      body: match[2]
+    });
+    tabulars.push({
+      fullMatch: match[0],
+      colSpec: match[1],
+      body: match[2]
+    });
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining content after last tabular
+  if (lastIndex < content.length) {
+    parts.push({
+      type: 'content',
+      text: content.substring(lastIndex)
+    });
+  }
+  
+  // If no tabulars found, return single content part
+  if (tabulars.length === 0) {
+    return { parts: [{ type: 'content', text: content }], tabulars: [] };
+  }
+  
+  return { parts, tabulars };
 }
 
 function Preview({ content }) {
@@ -1058,43 +1305,111 @@ function Preview({ content }) {
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    try {
-      const isFullDocument =
-        trimmed.includes("\\begin{document}") ||
-        trimmed.includes("\\documentclass");
+    // Extract tabular environments and split content
+    const { parts, tabulars } = extractTabulars(trimmed);
 
-      if (window.latexjs) {
-        const generator = new window.latexjs.HtmlGenerator({ hyphenate: false });
-        const source = isFullDocument
-          ? trimmed
-          : `\\documentclass{article}
+    try {
+      // If no tabulars found, render normally without splitting
+      if (tabulars.length === 0) {
+        const isFullDocument =
+          trimmed.includes("\\begin{document}") ||
+          trimmed.includes("\\documentclass");
+
+        if (window.latexjs) {
+          const generator = new window.latexjs.HtmlGenerator({ hyphenate: false });
+          const source = isFullDocument
+            ? trimmed
+            : `\\documentclass{article}
 \\begin{document}
 ${trimmed}
 \\end{document}`;
-        const finalSource = ensureXcolorPackage(source);
-        window.latexjs.parse(finalSource, { generator });
-        const temp = document.createElement("div");
-        temp.appendChild(generator.domFragment());
-        const html = applyFakeTextFormatting(temp.innerHTML);
-        container.innerHTML = html;
-      } else if (window.katex) {
-        window.katex.render(trimmed, container, {
-          throwOnError: false,
-          displayMode: true,
-        });
-      } else {
-        const pre = document.createElement("pre");
-        pre.textContent = trimmed;
-        container.appendChild(pre);
+          const finalSource = ensureXcolorPackage(source);
+          window.latexjs.parse(finalSource, { generator });
+          const temp = document.createElement("div");
+          temp.appendChild(generator.domFragment());
+          const html = applyFakeTextFormatting(temp.innerHTML);
+          container.innerHTML = html;
+        } else if (window.katex) {
+          window.katex.render(trimmed, container, {
+            throwOnError: false,
+            displayMode: true,
+          });
+        } else {
+          const pre = document.createElement("pre");
+          pre.style.whiteSpace = "pre-wrap";
+          pre.textContent = trimmed;
+          container.appendChild(pre);
+        }
+        return;
       }
+
+      // Render each part separately
+      parts.forEach((part, index) => {
+        try {
+          if (part.type === 'tabular') {
+            // Render table
+            renderSimpleTabular(container, part.fullMatch);
+          } else if (part.text !== undefined) {
+            // Render LaTeX content - always render, even if empty (to preserve structure)
+            const contentText = part.text || '';
+            
+            // Skip only if it's completely empty AND it's not the first or last part
+            if (!contentText.trim() && index !== 0 && index !== parts.length - 1) {
+              return;
+            }
+            
+            const isFullDocument =
+              contentText.includes("\\begin{document}") ||
+              contentText.includes("\\documentclass");
+
+            if (window.latexjs) {
+              const generator = new window.latexjs.HtmlGenerator({ hyphenate: false });
+              const source = isFullDocument
+                ? contentText
+                : `\\documentclass{article}
+\\begin{document}
+${contentText}
+\\end{document}`;
+              const finalSource = ensureXcolorPackage(source);
+              window.latexjs.parse(finalSource, { generator });
+              const temp = document.createElement("div");
+              temp.appendChild(generator.domFragment());
+              const html = applyFakeTextFormatting(temp.innerHTML);
+              
+              // Create a wrapper div for this content part
+              const contentDiv = document.createElement("div");
+              contentDiv.innerHTML = html;
+              container.appendChild(contentDiv);
+            } else if (window.katex) {
+              const contentDiv = document.createElement("div");
+              window.katex.render(contentText, contentDiv, {
+                throwOnError: false,
+                displayMode: true,
+              });
+              container.appendChild(contentDiv);
+            } else {
+              const pre = document.createElement("pre");
+              pre.style.whiteSpace = "pre-wrap";
+              pre.textContent = contentText;
+              container.appendChild(pre);
+            }
+          }
+        } catch (partError) {
+          console.error('Error rendering part:', partError, part);
+          // If a part fails, render it as plain text
+          const pre = document.createElement("pre");
+          pre.style.whiteSpace = "pre-wrap";
+          pre.textContent = part.type === 'tabular' ? part.fullMatch : (part.text || '');
+          container.appendChild(pre);
+        }
+      });
     } catch (e) {
-      if (trimmed.includes("\\begin{tabular}")) {
-        renderSimpleTabular(previewRef.current, trimmed);
-      } else {
-        const pre = document.createElement("pre");
-        pre.textContent = trimmed;
-        container.appendChild(pre);
-      }
+      console.error('Error rendering LaTeX:', e);
+      // Fallback: render as plain text
+      const pre = document.createElement("pre");
+      pre.style.whiteSpace = "pre-wrap";
+      pre.textContent = trimmed;
+      container.appendChild(pre);
     }
   }, [content]);
 
