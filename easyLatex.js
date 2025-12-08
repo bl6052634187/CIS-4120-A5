@@ -87,10 +87,10 @@ function LatexEditor({ currentUser }) {
     "Basic": false,
     "Text Formatting": false,
     "Calculus": false,
-    "Algebra": false,
+    "Algebra": true,
     "Greek Letters": false,
     "Sets & Logic": false,
-    "Matrices": true
+    "Matrices": false
   });
   const [activeSnippet, setActiveSnippet] = React.useState(null);
   const [isResizing, setIsResizing] = React.useState(false);
@@ -104,6 +104,16 @@ function LatexEditor({ currentUser }) {
   const [sizeRows, setSizeRows] = React.useState(2);
   const [sizeCols, setSizeCols] = React.useState(2);
   const [modalInsertHandler, setModalInsertHandler] = React.useState(null);
+
+  // Auto-open Basic category when modal opens (nested math mode)
+  React.useEffect(() => {
+    if (activeSnippet) {
+      setOpenCategories(prev => ({
+        ...prev,
+        "Basic": true
+      }));
+    }
+  }, [activeSnippet]);
 
   const handleChange = (e) => setText(e.target.value);
   const handleClear = () => setText("");
