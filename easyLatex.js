@@ -124,13 +124,30 @@ function LatexEditor({ currentUser }) {
     const textBefore = text.substring(0, start);
     const textAfter = text.substring(end);
 
-    const prefix = (start > 0 && textBefore[textBefore.length - 1] !== ' ') ? ' ' : '';
-    const newText = textBefore + prefix + snippet + textAfter;
-    const newCursorPos = start + prefix.length + snippet.length;
+    // Adjust snippet for context: if it is wrapped in dollar signs and being inserted
+    // inside existing math, strip the outer `$...$` so nested expressions don't break.
+    let adjustedSnippet = snippet;
+    if (snippet.startsWith("$") && snippet.endsWith("$")) {
+      const charBefore = textBefore.length > 0 ? textBefore[textBefore.length - 1] : "";
+      const charAfter = textAfter.length > 0 ? textAfter[0] : "";
+      const nonWhitespace = (ch) => ch && !/\s/.test(ch);
+
+      const likelyNestedContext =
+        nonWhitespace(charBefore) || nonWhitespace(charAfter);
+
+      if (likelyNestedContext) {
+        adjustedSnippet = snippet.slice(1, -1);
+      }
+    }
+
+    const prefix =
+      start > 0 && textBefore[textBefore.length - 1] !== " " ? " " : "";
+    const newText = textBefore + prefix + adjustedSnippet + textAfter;
+    const newCursorPos = start + prefix.length + adjustedSnippet.length;
 
     textarea.focus();
     textarea.setSelectionRange(start, end);
-    document.execCommand('insertText', false, prefix + snippet);
+    document.execCommand("insertText", false, prefix + adjustedSnippet);
     setText(newText);
     setTimeout(() => {
       textarea.setSelectionRange(newCursorPos, newCursorPos);
