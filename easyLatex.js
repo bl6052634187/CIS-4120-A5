@@ -43,6 +43,15 @@ function applyFakeTextFormatting(html) {
     });
 }
 
+// Helper: strip a single pair of surrounding dollar signs when nesting math snippets
+function stripOuterMathDelimiters(snippet) {
+  if (typeof snippet !== "string") return snippet;
+  if (snippet.length >= 2 && snippet[0] === "$" && snippet[snippet.length - 1] === "$") {
+    return snippet.slice(1, -1);
+  }
+  return snippet;
+}
+
 function normalizeHexColor(color) {
   if (!color) return "000000";
   let sanitized = color.trim().replace("#", "");
@@ -94,6 +103,7 @@ function LatexEditor({ currentUser }) {
   const [sizeModalMode, setSizeModalMode] = React.useState(null); // 'matrix' | 'table' | null
   const [sizeRows, setSizeRows] = React.useState(2);
   const [sizeCols, setSizeCols] = React.useState(2);
+  const [modalInsertHandler, setModalInsertHandler] = React.useState(null);
 
   const handleChange = (e) => setText(e.target.value);
   const handleClear = () => setText("");
@@ -127,7 +137,7 @@ function LatexEditor({ currentUser }) {
     // Adjust snippet for context: if it is wrapped in dollar signs and being inserted
     // inside existing math, strip the outer `$...$` so nested expressions don't break.
     let adjustedSnippet = snippet;
-    if (snippet.startsWith("$") && snippet.endsWith("$")) {
+    if (typeof snippet === "string" && snippet.startsWith("$") && snippet.endsWith("$")) {
       const charBefore = textBefore.length > 0 ? textBefore[textBefore.length - 1] : "";
       const charAfter = textAfter.length > 0 ? textAfter[0] : "";
       const nonWhitespace = (ch) => ch && !/\s/.test(ch);
@@ -136,7 +146,7 @@ function LatexEditor({ currentUser }) {
         nonWhitespace(charBefore) || nonWhitespace(charAfter);
 
       if (likelyNestedContext) {
-        adjustedSnippet = snippet.slice(1, -1);
+        adjustedSnippet = stripOuterMathDelimiters(snippet);
       }
     }
 
@@ -501,31 +511,36 @@ ${contentText}
     {
       name: "Basic",
       items: [
-        { label: "⁄ Fraction", interactive: true, fields: ["numerator", "denominator"], template: "$\\frac{{{numerator}}}{{{denominator}}}$" },
-        { label: "√ Square Root", interactive: true, fields: ["radicand"], template: "$\\sqrt{{{radicand}}}$" },
-        { label: "ⁿ√ Nth Root", interactive: true, fields: ["n", "radicand"], template: "$\\sqrt[{{n}}]{{{radicand}}}$" },
-        { label: "√⁄ Fraction Within Root", interactive: true, fields: ["numerator", "denominator"], template: "$\\sqrt{\\frac{{{numerator}}}{{{denominator}}}}$" },
-        { label: "x² Superscript", interactive: true, fields: ["base", "exponent"], template: "${{base}}^{{{exponent}}}$" },
-        { label: "x₂ Subscript", interactive: true, fields: ["base", "subscript"], template: "${{base}}_{{{subscript}}}$" },
+        { label: "⁄ Fraction", interactive: true, fields: ["numerator", "denominator"], template: "$\\frac{{{numerator}}}{{{denominator}}}$", mathContext: true },
+        { label: "√ Square Root", interactive: true, fields: ["radicand"], template: "$\\sqrt{{{radicand}}}$", mathContext: true },
+        { label: "ⁿ√ Nth Root", interactive: true, fields: ["n", "radicand"], template: "$\\sqrt[{{n}}]{{{radicand}}}$", mathContext: true },
+        { label: "√⁄ Fraction Within Root", interactive: true, fields: ["numerator", "denominator"], template: "$\\sqrt{\\frac{{{numerator}}}{{{denominator}}}}$", mathContext: true },
+        { label: "Superscript: a^2", interactive: true, fields: ["base", "exponent"], template: "${{base}}^{{{exponent}}}$", mathContext: true },
+        { label: "Subscript: a_2", interactive: true, fields: ["base", "subscript"], template: "${{base}}_{{{subscript}}}$", mathContext: true },
+        // Quick inline math snippets for nesting (shown only in nested-math mode)
+        { label: "a_2", code: "$a_2$", allowedInMath: true, nestedOnly: true },
+        { label: "a^2", code: "$a^2$", allowedInMath: true, nestedOnly: true },
+        { label: "√x", code: "$\\sqrt{x}$", allowedInMath: true, nestedOnly: true },
+        { label: "a/b", code: "$\\frac{a}{b}$", allowedInMath: true, nestedOnly: true },
       ]
     },
     {
       name: "Text Formatting",
       items: [
-        { label: "Bold Text", code: "$\\text{\\textbf{text}}$" },
-        { label: "Italic Text", code: "$\\text{\\textit{text}}$" },
-        { label: "Underline", code: "$\\text{\\underline{text}}$" },
-        { label: "Bold Math", code: "$\\mathbf{x}$" },
-        { label: "Blackboard Bold", code: "$\\mathbb{R}$" },
-        { label: "Calligraphic", code: "$\\mathcal{A}$" },
-        { label: "Roman Math", code: "$\\mathrm{text}$" },
-        { label: "Text in Math", code: "$\\text{text}$" },
-        { label: "Section Heading", code: "\\section{Title}" },
-        { label: "Subsection Heading", code: "\\subsection{Subtitle}" },
-        { label: "Subsubsection Heading", code: "\\subsubsection{Sub-subtitle}" },
-        { label: "Bullet List (itemize)", code: "$\\bullet \\text{ First item} \\\\ \n \\bullet \\text{ Second item} \\\\ \n \\bullet \\text{ Third item}$" },
-        { label: "Numbered List (enumerate)", code: "$\\text{1. First item} \\\\ \n \\text{2. Second item} \\\\ \n \\text{3. Third item}$" },
-        { label: "Description List", code: "\\begin{description}\n  \\item[Term 1] Definition 1\n  \\item[Term 2] Definition 2\n\\end{description}" },
+        { label: "Bold Text", code: "$\\text{\\textbf{text}}$", allowedInMath: true },
+        { label: "Italic Text", code: "$\\text{\\textit{text}}$", allowedInMath: true },
+        { label: "Underline", code: "$\\text{\\underline{text}}$", allowedInMath: true },
+        { label: "Bold Math", code: "$\\mathbf{x}$", allowedInMath: true },
+        { label: "Blackboard Bold", code: "$\\mathbb{R}$", allowedInMath: true },
+        { label: "Calligraphic", code: "$\\mathcal{A}$", allowedInMath: true },
+        { label: "Roman Math", code: "$\\mathrm{text}$", allowedInMath: true },
+        { label: "Text in Math", code: "$\\text{text}$", allowedInMath: true },
+        { label: "Section Heading", code: "\\section{Title}", allowedInMath: false },
+        { label: "Subsection Heading", code: "\\subsection{Subtitle}", allowedInMath: false },
+        { label: "Subsubsection Heading", code: "\\subsubsection{Sub-subtitle}", allowedInMath: false },
+        { label: "Bullet List (itemize)", code: "$\\bullet \\text{ First item} \\\\ \n \\bullet \\text{ Second item} \\\\ \n \\bullet \\text{ Third item}$", allowedInMath: false },
+        { label: "Numbered List (enumerate)", code: "$\\text{1. First item} \\\\ \n \\text{2. Second item} \\\\ \n \\text{3. Third item}$", allowedInMath: false },
+        { label: "Description List", code: "\\begin{description}\n  \\item[Term 1] Definition 1\n  \\item[Term 2] Definition 2\n\\end{description}", allowedInMath: false },
       ]
     },
     {
@@ -549,9 +564,9 @@ ${contentText}
       name: "Algebra",
       items: [
         { label: "Σ Summation", interactive: true, fields: ["index", "start", "end", "expression"], 
-          template: "$\\sum_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}$" },
+          template: "$\\sum_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}$", mathContext: true },
         { label: "∏ Product", interactive: true, fields: ["index", "start", "end", "expression"], 
-          template: "$\\prod_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}$" },
+          template: "$\\prod_{{{index}}={{{start}}}}^{{{end}}} {{{expression}}}$", mathContext: true },
         { label: "± Plus/Minus", code: "$\\pm$" },
         { label: "≠ Not Equal", code: "$\\neq$" },
         { label: "≈ Approximately", code: "$\\approx$" },
@@ -598,8 +613,8 @@ ${contentText}
           template: "$\\begin{vmatrix} {{a11}} & {{a12}} \\\\ {{a21}} & {{a22}} \\end{vmatrix}$" },
         { label: "Bracket Matrix", interactive: true, fields: ["a11", "a12", "a21", "a22"], 
           template: "$\\begin{bmatrix} {{a11}} & {{a12}} \\\\ {{a21}} & {{a22}} \\end{bmatrix}$" },
-        { label: "Custom Matrix (m×n)", code: "__CUSTOM_MATRIX__" },
-        { label: "Custom Table (rows×cols)", code: "__CUSTOM_TABLE__" },
+        { label: "Custom Matrix (m×n)", code: "__CUSTOM_MATRIX__", allowedInMath: false },
+        { label: "Custom Table (rows×cols)", code: "__CUSTOM_TABLE__", allowedInMath: false },
       ]
     }
   ];
@@ -848,6 +863,22 @@ ${contentText}
         <h2 style={{ color: "white", fontSize: "1.25rem", fontWeight: "600", marginBottom: "1.5rem" }}>LaTeX Snippets</h2>
         {latexCategories.map((category, categoryIndex) => {
           const isOpen = openCategories[category.name];
+
+          // During nested math mode, compute only the items that are allowed.
+          const visibleItems = modalInsertHandler
+            ? category.items.filter((item) => {
+                if (item.allowedInMath === false) return false;
+                if (item.interactive) return false;
+                if (!item.code) return false;
+                return true;
+              })
+            : category.items.filter((item) => !item.nestedOnly);
+
+          // If there are no visible items for this category in nested mode, skip it entirely.
+          if (modalInsertHandler && visibleItems.length === 0) {
+            return null;
+          }
+
           return (
             <div key={category.name}>
               <div
@@ -860,12 +891,15 @@ ${contentText}
                 <span style={{ ...chevronStyle, transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
               </div>
               <div style={{ ...categoryContentStyle, maxHeight: isOpen ? "2000px" : "0px", opacity: isOpen ? 1 : 0, marginTop: isOpen ? "0.5rem" : "0", marginBottom: isOpen ? "0.5rem" : "0" }}>
-                {category.items.map((item, itemIndex) => (
+                {visibleItems.map((item, itemIndex) => (
                   <button
                     key={itemIndex}
                     style={snippetButtonStyle}
                     onClick={() => {
-                      if (item.interactive) {
+                      if (modalInsertHandler && !item.interactive && item.code && item.allowedInMath !== false) {
+                        // Insert directly into the currently focused field of the open modal
+                        modalInsertHandler(item.code);
+                      } else if (item.interactive) {
                         setActiveSnippet(item);
                       } else if (item.code === "__CUSTOM_MATRIX__") {
                         openSizeModal("matrix");
@@ -1028,7 +1062,11 @@ ${contentText}
         <SnippetModal
           snippet={activeSnippet}
           onInsert={insertSnippet}
-          onClose={() => setActiveSnippet(null)}
+          onClose={() => {
+            setActiveSnippet(null);
+            setModalInsertHandler(null);
+          }}
+          onRegisterInsertHandler={setModalInsertHandler}
         />
       )}
 
@@ -1048,7 +1086,7 @@ ${contentText}
 }
 
 // Modal for interactive snippets
-function SnippetModal({ snippet, onInsert, onClose }) {
+function SnippetModal({ snippet, onInsert, onClose, onRegisterInsertHandler }) {
   const [values, setValues] = React.useState(
     () => snippet.fields.reduce((acc, f) => ({ ...acc, [f]: "" }), {})
   );
@@ -1072,6 +1110,29 @@ function SnippetModal({ snippet, onInsert, onClose }) {
     setFocused(prev => ({ ...prev, [field]: true }));
   };
 
+  // Allow toolbar snippets to insert into the currently focused field
+  React.useEffect(() => {
+    if (!onRegisterInsertHandler) return;
+
+    const handler = (latex) => {
+      const activeField = Object.keys(focused).find((f) => focused[f]);
+      if (!activeField) return;
+
+      const toInsert = stripOuterMathDelimiters(latex);
+      setValues((prev) => ({
+        ...prev,
+        [activeField]: (prev[activeField] || "") + toInsert,
+      }));
+    };
+
+    // Store handler in parent state (wrap so React doesn't treat function as updater)
+    onRegisterInsertHandler(() => handler);
+
+    return () => {
+      onRegisterInsertHandler(() => null);
+    };
+  }, [focused, onRegisterInsertHandler]);
+
   const renderPreviewString = () => {
     let code = snippet.template;
     Object.keys(values).forEach(k => {
@@ -1087,12 +1148,26 @@ function SnippetModal({ snippet, onInsert, onClose }) {
 
 
   const overlayStyle = {
-    position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
-    background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background: "rgba(0,0,0,0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+    // Allow clicks to pass through to the left toolbar while the modal is open
+    pointerEvents: "none",
   };
   const modalStyle = {
-    background: "white", padding: "2rem", borderRadius: "12px", minWidth: "350px",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.3)"
+    background: "white",
+    padding: "2rem",
+    borderRadius: "12px",
+    minWidth: "350px",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+    pointerEvents: "auto",
   };
   const inputStyle = {
     width: "100%", marginBottom: "1rem", padding: "0.5rem 0.75rem", fontSize: "1rem",
@@ -1103,7 +1178,16 @@ function SnippetModal({ snippet, onInsert, onClose }) {
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={e => e.stopPropagation()}>
-        <h3 style={{ marginBottom: "1rem" }}>{snippet.label}</h3>
+        <h3 style={{ marginBottom: "0.5rem" }}>{snippet.label}</h3>
+        <p
+          style={{
+            marginBottom: "0.9rem",
+            fontSize: "0.8rem",
+            color: "#4a5568",
+          }}
+        >
+          You can click math snippets in the left sidebar while this window is open to build nested expressions.
+        </p>
 
         {snippet.fields.map(f => (
           <input
@@ -1779,7 +1863,7 @@ function:      f(x)`}
 }
 
 function AuthPage({ onAuthSuccess, onBackToLanding }) {
-  const [mode, setMode] = React.useState("login"); // "login" | "signup"
+  const [mode, setMode] = React.useState("signup"); // "login" | "signup"
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
