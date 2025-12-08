@@ -81,7 +81,7 @@ function LatexEditor({ currentUser }) {
     "Algebra": false,
     "Greek Letters": false,
     "Sets & Logic": false,
-    "Matrices": false
+    "Matrices": true
   });
   const [activeSnippet, setActiveSnippet] = React.useState(null);
   const [isResizing, setIsResizing] = React.useState(false);
@@ -97,6 +97,23 @@ function LatexEditor({ currentUser }) {
 
   const handleChange = (e) => setText(e.target.value);
   const handleClear = () => setText("");
+
+  const handleCopyEditor = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else if (textareaRef.current) {
+        const textarea = textareaRef.current;
+        const previousSelectionStart = textarea.selectionStart;
+        const previousSelectionEnd = textarea.selectionEnd;
+        textarea.select();
+        document.execCommand("copy");
+        textarea.setSelectionRange(previousSelectionStart, previousSelectionEnd);
+      }
+    } catch (e) {
+      // Silently ignore clipboard errors to avoid disrupting the editor UX
+    }
+  };
 
   const insertSnippet = (snippet) => {
     const textarea = textareaRef.current;
@@ -739,6 +756,17 @@ ${contentText}
     transition: "all 0.2s ease",
     color: "#4a5568",
   };
+  const editorHeaderRowStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "0.75rem",
+  };
+  const editorCopyButtonStyle = {
+    ...headerSmallButtonStyle,
+    fontSize: "0.8rem",
+    padding: "0.4rem 0.9rem",
+  };
   const colorControlsRowStyle = {
     display: "flex",
     gap: "1rem",
@@ -937,7 +965,24 @@ ${contentText}
 
         <div style={editorPreviewContainerStyle} ref={editorPreviewRef}>
           <div style={{ ...editorSectionStyle, flex: editorRatio }}>
-          <h2 style={sectionTitleStyle}>Editor</h2>
+          <div style={editorHeaderRowStyle}>
+            <h2 style={sectionTitleStyle}>Editor</h2>
+            <button
+              type="button"
+              style={editorCopyButtonStyle}
+              onClick={handleCopyEditor}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f7fafc";
+                e.currentTarget.style.borderColor = "#667eea";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "white";
+                e.currentTarget.style.borderColor = "#cbd5e0";
+              }}
+            >
+              Copy LaTeX
+            </button>
+          </div>
 
           <textarea
             ref={textareaRef}
@@ -1976,12 +2021,37 @@ function App() {
     return <LandingPage onGetStarted={handleDismissLanding} />;
   }
 
+  const topRowStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "1rem",
+    gap: "1rem",
+  };
+
+  const usageStepsStyle = {
+    fontSize: "0.85rem",
+    color: "#EDF2F7",
+    background: "rgba(15,23,42,0.35)",
+    borderRadius: "999px",
+    padding: "0.45rem 0.85rem",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.6rem",
+  };
+
+  const usageStepEmphasisStyle = {
+    fontWeight: "600",
+    color: "#E9D8FD",
+  };
+
   const topBarStyle = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "1rem",
-    padding: "0.75rem 1.25rem",
+    marginLeft: "auto",
+    maxWidth: "420px",
+    padding: "0.6rem 1.1rem",
     background: "rgba(255,255,255,0.9)",
     borderRadius: "999px",
     boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
@@ -2019,11 +2089,21 @@ function App() {
 
   return (
     <div>
-      <div style={topBarStyle}>
-        <span style={topBarTextStyle}>Signed in as {currentUser.email}</span>
-        <button style={topBarButtonStyle} onClick={handleLogout}>
-          Log out
-        </button>
+      <div style={topRowStyle}>
+        <div style={usageStepsStyle}>
+          <span style={usageStepEmphasisStyle}>1.</span>
+          <span>Pick a template</span>
+          <span style={usageStepEmphasisStyle}>2.</span>
+          <span>Fill in the fields</span>
+          <span style={usageStepEmphasisStyle}>3.</span>
+          <span>Copy LaTeX or export PDF</span>
+        </div>
+        <div style={topBarStyle}>
+          <span style={topBarTextStyle}>Signed in as {currentUser.email}</span>
+          <button style={topBarButtonStyle} onClick={handleLogout}>
+            Log out
+          </button>
+        </div>
       </div>
       <LatexEditor currentUser={currentUser} />
     </div>
