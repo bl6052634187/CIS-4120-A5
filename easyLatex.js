@@ -527,6 +527,7 @@ ${contentText}
     {
       name: "Text Formatting",
       items: [
+        { label: "Text Block", code: "$\\text{text}$", allowedInMath: true },
         { label: "Bold Text", code: "$\\text{\\textbf{text}}$", allowedInMath: true },
         { label: "Italic Text", code: "$\\text{\\textit{text}}$", allowedInMath: true },
         { label: "Underline", code: "$\\text{\\underline{text}}$", allowedInMath: true },
@@ -598,6 +599,7 @@ ${contentText}
         { label: "∪ Union", code: "$\\cup$" },
         { label: "∩ Intersection", code: "$\\cap$" },
         { label: "∅ Empty Set", code: "$\\emptyset$" },
+        { label: "∞ Infinity", code: "$\\infty$" },
         { label: "∀ For All", code: "$\\forall$" },
         { label: "∃ Exists", code: "$\\exists$" },
       ]
@@ -634,6 +636,8 @@ ${contentText}
     padding: "2rem 1.5rem",
     overflowY: "auto",
     flexShrink: 0,
+    position: "relative",
+    zIndex: 1002,
   };
   const mainContentStyle = {
     flex: 1,
@@ -1105,9 +1109,22 @@ function SnippetModal({ snippet, onInsert, onClose, onRegisterInsertHandler }) {
 
   // Convert template + values into preview LaTeX
   const [focused, setFocused] = React.useState({});
+  const [lastFocusedField, setLastFocusedField] = React.useState(null);
 
   const handleFocus = (field) => {
-    setFocused(prev => ({ ...prev, [field]: true }));
+    setFocused({ [field]: true }); // Only one field focused at a time
+    setLastFocusedField(field); // Track the last focused field
+  };
+
+  const handleBlur = (field) => {
+    // Don't clear focus immediately - delay to allow sidebar clicks to work
+    setTimeout(() => {
+      setFocused(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }, 100);
   };
 
   // Allow toolbar snippets to insert into the currently focused field
@@ -1115,7 +1132,19 @@ function SnippetModal({ snippet, onInsert, onClose, onRegisterInsertHandler }) {
     if (!onRegisterInsertHandler) return;
 
     const handler = (latex) => {
-      const activeField = Object.keys(focused).find((f) => focused[f]);
+      // First try to find currently focused field
+      let activeField = Object.keys(focused).find((f) => focused[f]);
+      
+      // If no field is currently focused, use the last focused field
+      if (!activeField && lastFocusedField) {
+        activeField = lastFocusedField;
+      }
+      
+      // If still no field, use the first field as fallback
+      if (!activeField && snippet.fields.length > 0) {
+        activeField = snippet.fields[0];
+      }
+      
       if (!activeField) return;
 
       const toInsert = stripOuterMathDelimiters(latex);
@@ -1131,7 +1160,7 @@ function SnippetModal({ snippet, onInsert, onClose, onRegisterInsertHandler }) {
     return () => {
       onRegisterInsertHandler(() => null);
     };
-  }, [focused, onRegisterInsertHandler]);
+  }, [focused, lastFocusedField, onRegisterInsertHandler, snippet.fields]);
 
   const renderPreviewString = () => {
     let code = snippet.template;
@@ -1168,6 +1197,8 @@ function SnippetModal({ snippet, onInsert, onClose, onRegisterInsertHandler }) {
     minWidth: "350px",
     boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
     pointerEvents: "auto",
+    position: "relative",
+    zIndex: 1001,
   };
   const inputStyle = {
     width: "100%", marginBottom: "1rem", padding: "0.5rem 0.75rem", fontSize: "1rem",
@@ -1197,6 +1228,7 @@ function SnippetModal({ snippet, onInsert, onClose, onRegisterInsertHandler }) {
             value={values[f]}
             onChange={e => handleChange(f, e.target.value)}
             onFocus={() => handleFocus(f)}
+            onBlur={() => handleBlur(f)}
           />
         ))}
 
@@ -1233,6 +1265,7 @@ function SizeModal({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
+    pointerEvents: "none",
   };
   const modalStyle = {
     background: "white",
@@ -1240,6 +1273,9 @@ function SizeModal({
     borderRadius: "12px",
     minWidth: "320px",
     boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+    pointerEvents: "auto",
+    position: "relative",
+    zIndex: 1001,
   };
   const labelStyle = {
     fontSize: "0.9rem",
