@@ -148,16 +148,9 @@ function LatexEditor({ currentUser }) {
     const isStartOfLine = start === 0 || textBefore[textBefore.length - 1] === '\n';
     const prefix = isStartOfLine ? "" : "\n";
     
-    // Adjust snippet for nested mode: only strip dollar signs when in nested mode (modal is open)
-    // Otherwise, keep dollar signs intact
+    // Keep dollar signs intact - insertSnippet is only called for final insertion into main editor
+    // Dollar sign stripping only happens in modalInsertHandler when inserting into modal fields
     let adjustedSnippet = snippet;
-    if (typeof snippet === "string" && snippet.startsWith("$") && snippet.endsWith("$")) {
-      // Only strip dollar signs in nested mode (when activeSnippet is set, meaning modal is open)
-      if (activeSnippet) {
-        adjustedSnippet = stripOuterMathDelimiters(snippet);
-      }
-      // Otherwise, keep dollar signs as-is
-    }
 
     const newText = textBefore + prefix + adjustedSnippet + textAfter;
     const newCursorPos = start + prefix.length + adjustedSnippet.length;
